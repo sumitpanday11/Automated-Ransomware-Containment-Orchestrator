@@ -1,10 +1,10 @@
 import logging
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from fastapi import APIRouter, Header, HTTPException, Request
 
 from app.edr.config import EDRSettings
-from app.models.alert import Alert
+from app.edr.normalizer import normalize_alert, to_incident
 
 logger = logging.getLogger(__name__)
 
@@ -21,28 +21,61 @@ async def receive_edr_alert(
 
     if not settings.api_key or x_edr_api_key != settings.api_key:
         logger.warning("EDR webhook authentication failed")
-        raise HTTPException(status_code=401, detail="Invalid EDR authentication")
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid EDR authentication",
+        )
 
     correlation_id = x_correlation_id or str(uuid4())
 
     try:
         payload = await request.json()
-        alert = Alert.model_validate(payload)
     except Exception:
         logger.warning(
-            "Invalid EDR alert payload correlation_id=%s",
+            "Invalid JSON payload correlation_id=%s",
             correlation_id,
         )
-        raise HTTPException(status_code=422, detail="Invalid EDR alert payload")
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid EDR alert payload",
+        )
+
+    provider = request.headers.get("x-edr-provider")
+
+    if not provider:
+        raise HTTPException(
+            status_code=422,
+            detail="X-EDR-Provider header is required",
+        )
+
+    try:
+        normalized_alert = normalize_alert(payload, provider)
+        incident = to_incident(normalized_alert)
+    except (ValueError, TypeError):
+        logger.warning(
+            "EDR alert validation failed provider=%s correlation_id=%s",
+            provider,
+            correlation_id,
+        )
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid EDR alert payload",
+        )
 
     logger.info(
-        "EDR alert received alert_id=%s correlation_id=%s",
-        alert.alert_id,
+        "EDR alert normalized provider=%s alert_id=%s incident_id=%s "
+        "correlation_id=%s",
+        provider,
+        normalized_alert.alert_id,
+        incident.incident_id,
         correlation_id,
     )
 
     return {
         "status": "accepted",
-        "alert_id": str(alert.alert_id),
+        "provider": provider,
+        "alert_id": str(normalized_alert.alert_id),
+        "incident_id": str(incident.incident_id),
         "correlation_id": correlation_id,
+        "incident": incident.model_dump(mode="json"),
     }
