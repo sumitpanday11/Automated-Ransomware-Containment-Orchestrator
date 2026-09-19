@@ -21,3 +21,11 @@ class EDRService:
     def fetch_alerts(self) -> list[dict[str, Any]]:
         """Fetch alerts from the configured EDR provider."""
         return self.provider.fetch_alerts()
+
+    def isolate_host(self, hostname: str) -> bool:
+        """Request host isolation through the configured EDR provider."""
+        return self.provider.isolate_host(hostname)
+
+    def get_isolation_status(self, hostname: str) -> str:
+        """Return host isolation status from the configured EDR provider."""
+        return self.provider.get_isolation_status(hostname)

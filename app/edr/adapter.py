@@ -14,3 +14,13 @@ class EDRAdapter(ABC):
     def fetch_alerts(self) -> list[dict[str, Any]]:
         """Fetch security alerts from the EDR provider."""
         raise NotImplementedError
+
+    @abstractmethod
+    def isolate_host(self, hostname: str) -> bool:
+        """Isolate a host from the network."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_isolation_status(self, hostname: str) -> str:
+        """Return the current isolation status of a host."""
+        raise NotImplementedError
