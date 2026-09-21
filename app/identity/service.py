@@ -25,3 +25,15 @@ class IdentityService:
     def suspend_user(self, username: str) -> bool:
         """Suspend a user through the configured provider."""
         return self.provider.suspend_user(username)
+
+    def list_active_sessions(self, username: str) -> list[dict[str, Any]]:
+        """List active sessions through the configured provider."""
+        return self.provider.list_active_sessions(username)
+
+    def revoke_session(self, username: str, session_id: str) -> bool:
+        """Revoke a specific session through the configured provider."""
+        return self.provider.revoke_session(username, session_id)
+
+    def revoke_tokens(self, username: str) -> bool:
+        """Revoke active tokens through the configured provider."""
+        return self.provider.revoke_tokens(username)

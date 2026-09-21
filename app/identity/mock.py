@@ -26,6 +26,19 @@ class MockIdentityProvider(IdentityProviderAdapter):
             },
         }
 
+        self._sessions: dict[str, list[dict[str, Any]]] = {
+            "alice": [
+                {"session_id": "alice-session-1", "status": "active"},
+                {"session_id": "alice-session-2", "status": "active"},
+            ],
+            "bob": [
+                {"session_id": "bob-session-1", "status": "active"},
+            ],
+            "admin": [],
+        }
+
+        self._revoked_tokens: set[str] = set()
+
     def authenticate(self) -> bool:
         """Authenticate against the mock identity provider."""
         self._authenticated = True
@@ -52,4 +65,45 @@ class MockIdentityProvider(IdentityProviderAdapter):
             return False
 
         user["status"] = "suspended"
+        return True
+
+    def list_active_sessions(self, username: str) -> list[dict[str, Any]]:
+        """List active sessions for a user."""
+        if not self._authenticated:
+            raise RuntimeError("Identity provider is not authenticated")
+
+        sessions = self._sessions.get(username, [])
+
+        return [
+            session.copy()
+            for session in sessions
+            if session["status"] == "active"
+        ]
+
+    def revoke_session(self, username: str, session_id: str) -> bool:
+        """Revoke a specific active session."""
+        if not self._authenticated:
+            raise RuntimeError("Identity provider is not authenticated")
+
+        sessions = self._sessions.get(username, [])
+
+        for session in sessions:
+            if session["session_id"] == session_id:
+                if session["status"] != "active":
+                    return False
+
+                session["status"] = "revoked"
+                return True
+
+        return False
+
+    def revoke_tokens(self, username: str) -> bool:
+        """Revoke active tokens for a user."""
+        if not self._authenticated:
+            raise RuntimeError("Identity provider is not authenticated")
+
+        if username not in self._users:
+            return False
+
+        self._revoked_tokens.add(username)
         return True

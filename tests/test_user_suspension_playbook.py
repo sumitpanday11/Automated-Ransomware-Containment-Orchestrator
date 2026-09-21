@@ -17,6 +17,15 @@ class FailingAuthProvider(IdentityProviderAdapter):
     def suspend_user(self, username: str) -> bool:
         return False
 
+    def list_active_sessions(self, username: str) -> list[dict]:
+        return []
+
+    def revoke_session(self, username: str, session_id: str) -> bool:
+        return False
+
+    def revoke_tokens(self, username: str) -> bool:
+        return False
+
 
 class FailingSuspensionProvider(IdentityProviderAdapter):
     """Identity provider that fails during suspension."""
@@ -37,6 +46,15 @@ class FailingSuspensionProvider(IdentityProviderAdapter):
 
     def suspend_user(self, username: str) -> bool:
         raise RuntimeError("simulated suspension failure")
+
+    def list_active_sessions(self, username: str) -> list[dict]:
+        return []
+
+    def revoke_session(self, username: str, session_id: str) -> bool:
+        return False
+
+    def revoke_tokens(self, username: str) -> bool:
+        return False
 
 
 def test_successfully_suspends_user() -> None:

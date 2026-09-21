@@ -19,3 +19,18 @@ class IdentityProviderAdapter(ABC):
     def suspend_user(self, username: str) -> bool:
         """Suspend a user account."""
         raise NotImplementedError
+
+    @abstractmethod
+    def list_active_sessions(self, username: str) -> list[dict[str, Any]]:
+        """List active sessions for a user."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def revoke_session(self, username: str, session_id: str) -> bool:
+        """Revoke a specific active session."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def revoke_tokens(self, username: str) -> bool:
+        """Revoke active tokens for a user."""
+        raise NotImplementedError
