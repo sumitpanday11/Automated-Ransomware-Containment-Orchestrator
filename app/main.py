@@ -3,6 +3,7 @@ import logging
 from fastapi import FastAPI
 
 from app.config import settings
+from app.dashboard.routes import router as dashboard_router
 from app.edr.webhook import router as edr_webhook_router
 from app.logging_config import setup_logging
 
@@ -15,6 +16,7 @@ app = FastAPI(
 )
 
 app.include_router(edr_webhook_router)
+app.include_router(dashboard_router)
 
 
 @app.on_event("startup")
