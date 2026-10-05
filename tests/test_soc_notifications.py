@@ -1,4 +1,5 @@
 from app.notifications.mock import MockNotificationAdapter
+from app.notifications.adapter import NotificationResult
 from app.notifications.service import SOCNotificationService
 
 
@@ -100,3 +101,35 @@ def test_notification_ids_are_unique():
     assert result1.notification_id != result2.notification_id
     assert result1.notification_id == "MOCK-SOC-NOTIFY-0001"
     assert result2.notification_id == "MOCK-SOC-NOTIFY-0002"
+def test_notification_failure_is_returned(monkeypatch):
+    adapter = MockNotificationAdapter()
+    service = SOCNotificationService(adapter)
+
+    def fail_notification(notification):
+        return NotificationResult(
+            success=False,
+            notification_id=None,
+            provider="mock",
+            message="SOC notification failed",
+        )
+
+    monkeypatch.setattr(
+        adapter,
+        "send_notification",
+        fail_notification,
+    )
+
+    result = service.notify_incident(
+        incident_id="INC-004",
+        host="WORKSTATION-04",
+        user="alice",
+        threat="Ransomware",
+        severity="CRITICAL",
+        status="CONTAINED",
+    )
+
+    assert result.success is False
+    assert result.notification_id is None
+    assert result.provider == "mock"
+    assert result.message == "SOC notification failed"
+

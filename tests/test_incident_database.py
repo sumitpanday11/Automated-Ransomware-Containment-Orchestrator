@@ -175,3 +175,14 @@ def test_missing_incident_is_rejected_for_audit_log(repository) -> None:
             action="test",
             status="success",
         )
+
+def test_database_connection_failure_is_propagated(monkeypatch, tmp_path):
+    database = IncidentDatabase(str(tmp_path / "incidents.db"))
+
+    def fail_connect():
+        raise sqlite3.OperationalError("database unavailable")
+
+    monkeypatch.setattr(database, "connect", fail_connect)
+
+    with pytest.raises(sqlite3.OperationalError, match="database unavailable"):
+        database.connect()

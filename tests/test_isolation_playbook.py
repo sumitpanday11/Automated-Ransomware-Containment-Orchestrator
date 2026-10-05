@@ -143,3 +143,54 @@ def test_invalid_retry_count_is_rejected():
 
 def test_isolation_action_name_matches_response_action():
     assert ResponseAction.ISOLATE_HOST.value == "isolate_host"
+
+def test_isolation_handles_provider_exception(monkeypatch):
+    service = create_service_with_mock()
+
+    def raise_error(hostname: str) -> bool:
+        raise RuntimeError("EDR provider unavailable")
+
+    monkeypatch.setattr(
+        service.provider,
+        "isolate_host",
+        raise_error,
+    )
+
+    playbook = HostIsolationPlaybook(
+        edr_service=service,
+        max_retries=3,
+    )
+
+    result = playbook.isolate("workstation-01")
+
+    assert result.success is False
+    assert result.status == "error"
+    assert result.attempts == 3
+    assert len(result.audit_log) == 3
+    assert all(entry.status == "error" for entry in result.audit_log)
+    assert all(entry.success is False for entry in result.audit_log)
+
+
+def test_isolation_handles_authentication_failure(monkeypatch):
+    service = create_service_with_mock()
+
+    monkeypatch.setattr(
+        service,
+        "authenticate",
+        lambda: False,
+    )
+
+    playbook = HostIsolationPlaybook(
+        edr_service=service,
+        max_retries=3,
+    )
+
+    result = playbook.isolate("workstation-01")
+
+    assert result.success is False
+    assert result.status == "authentication_failed"
+    assert result.attempts == 0
+    assert len(result.audit_log) == 1
+    assert result.audit_log[0].attempt == 0
+    assert result.audit_log[0].success is False
+    assert result.audit_log[0].status == "authentication_failed"
